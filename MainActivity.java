@@ -1,4 +1,5 @@
-package com.example.user.aaa;
+package com.a5e.peopleapex;
+
 import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -6,6 +7,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -15,11 +17,15 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.webkit.WebChromeClient;
-import android.webkit.WebResourceRequest;
-import android.widget.TextView;
-import android.widget.Toast;
+import android.view.View;
 import android.webkit.GeolocationPermissions;
+import android.webkit.WebChromeClient;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.widget.ProgressBar;
+import android.widget.Toast;
+
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.ResultCallback;
@@ -31,78 +37,64 @@ import com.google.android.gms.location.LocationSettingsResult;
 import com.google.android.gms.location.LocationSettingsStates;
 import com.google.android.gms.location.LocationSettingsStatusCodes;
 
-
-import android.graphics.Bitmap;
-
-import android.view.KeyEvent;
-import android.view.View;
-
-import android.webkit.WebSettings;
-import android.webkit.WebView;
-import android.webkit.WebViewClient;
-import android.widget.ProgressBar;
+import com.a5e.peopleapex.R;
 
 
-public class MainActivity extends AppCompatActivity
-{
+public class MainActivity extends AppCompatActivity{
     private static final int REQUEST_CHECK_SETTINGS = 0x1;
     private static GoogleApiClient mGoogleApiClient;
     private static final int ACCESS_COARSE_LOCATION_INTENT_ID = 3;
     private static final String BROADCAST_ACTION = "android.location.PROVIDERS_CHANGED";
-    private TextView gps_status;
-    private WebView webView;
-    ProgressBar bar;
 
+    private WebView webView;
+    ProgressBar bar1;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState)
-    {
-
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
         webView = (WebView) this.findViewById(R.id.webview);
-        bar=(ProgressBar)findViewById(R.id.progressBar);
-        webView.setWebViewClient(new myWebClient());
+        bar1=(ProgressBar)findViewById(R.id.progressBar);
 
-
-        webView.setWebChromeClient(new WebChromeClient() {
+        webView.setWebChromeClient(new WebChromeClient()
+        {
             @Override
-            public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
+            public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback)
+            {
                 callback.invoke(origin, true, false);
             }
         });
 
-        webView.loadUrl("https://my.peopleapex.com/login");
-        WebSettings webSettings=webView.getSettings();
+        webView.setWebViewClient(new MainActivity.myWebClient());
+
+        webView.clearHistory();
+        webView.clearCache(true);
+
+        webView.loadUrl("https://a5e.ahecto.com/app/login");
+
+        WebSettings webSettings = webView.getSettings();
         webSettings.setJavaScriptEnabled(true);
+
+
+
+        webView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+
+        webView.getSettings().setSupportMultipleWindows(true);
+        webView.getSettings().setDomStorageEnabled(true);
         initGoogleAPIClient();//Init Google API Client
         checkPermissions();//Check Permission
 
-        ActivityCompat.requestPermissions(this, new String[]{
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-        }, 0);
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+            }, 0);
 
 
-
-    }
-    private void deleteAppData() {
-        try {
-            // clearing app data
-            String packageName = getApplicationContext().getPackageName();
-            Runtime runtime = Runtime.getRuntime();
-            runtime.exec("pm clear "+packageName);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        } }
-    @Override
-    protected void onStop(){
-        super.onStop();
-        webView.clearCache(true);
-        webView.loadUrl("https://my.peopleapex.com/login");
-        deleteAppData();
+        }
     }
 
 
@@ -206,25 +198,30 @@ public class MainActivity extends AppCompatActivity
         super.setSupportProgressBarVisibility(visible);
     }
 
+
     @Override
     protected void onResume()
     {
         super.onResume();
+        //webView.loadUrl("https://a5e.ahecto.com/app/login");
         registerReceiver(gpsLocationReceiver, new IntentFilter(BROADCAST_ACTION));//Register broadcast receiver to check the status of GPS
     }
+
 
     @Override
     protected void onDestroy()
     {
         super.onDestroy();
-        webView.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
-        webView.loadUrl("https://my.peopleapex.com/login");
+
         //Unregister receiver on destroy
         if (gpsLocationReceiver != null)
             unregisterReceiver(gpsLocationReceiver);
-        deleteAppData();
 
+        //context.getSystemService(Context.ACTIVITY_SERVICE)).clearApplicationUserData();
     }
+
+
+
 
     //Run on UI
     private Runnable sendUpdatesToUI = new Runnable() {
@@ -243,7 +240,7 @@ public class MainActivity extends AppCompatActivity
                 //Check if GPS is turned ON or OFF
                 if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
                     Log.e("About GPS", "GPS is Enabled in your device");
-                   // updateGPSStatus("GPS is Enabled in your device");
+                    // updateGPSStatus("GPS is Enabled in your device");
                 } else {
                     //If GPS turned OFF show Location Dialog
                     new Handler().postDelayed(sendUpdatesToUI, 10);
@@ -259,7 +256,7 @@ public class MainActivity extends AppCompatActivity
     //Method to update GPS status text
     //private void updateGPSStatus(String status) {
     //    gps_status.setText(status);
-   // }
+    // }
 
 
     /* On Request permission method to check the permisison is granted or not for Marshmallow+ Devices  */
@@ -281,7 +278,7 @@ public class MainActivity extends AppCompatActivity
 
 
                 } else {
-                   // updateGPSStatus("Location Permission denied.");
+                    // updateGPSStatus("Location Permission denied.");
                     Toast.makeText(MainActivity.this, "Location Permission denied.", Toast.LENGTH_SHORT).show();
                     // permission denied, boo! Disable the
                     // functionality that depends on this permission.
@@ -293,49 +290,76 @@ public class MainActivity extends AppCompatActivity
 
 
 
+
     public class myWebClient extends WebViewClient{
 
         public void onReceivedError(WebView view,int errorCode,String description,String failingUrl){
             webView.loadUrl("file:///android_asset/error.html") ;
             //webView.loadDataWithBaseURL("file:///android_asset/error.html/", "<img src='peopleapex.png' />", "text/html", "utf-8", null);
-
         }
 
 
         @Override
         public void onPageStarted(WebView view, String url, Bitmap favicon) {
             super.onPageStarted(view, url, favicon);
-            bar.setVisibility(View.VISIBLE);
-            setTitle("Loading...");
+            bar1.setVisibility(View.VISIBLE);
 
+            //Log.i("URL:",webView.getUrl().toString());
+            /*if(webView.getUrl().toString().equals("https://a5e.ahecto.com/login"))
+
+            {
+
+                webView.loadUrl("https://a5e.ahecto.com/app/login");
+
+            }
+            if(webView.getUrl().toString().matches("https://my.peopleapex.com/login")){
+
+                webView.loadUrl("https://a5e.ahecto.com/app/login");
+
+            }*/
         }
 
         @Override
         public void onPageFinished(WebView view, String url) {
             super.onPageFinished(view, url);
-            bar.setVisibility(View.GONE);
-        }
+            bar1.setVisibility(View.GONE);
+            Log.i("URL:",webView.getUrl().toString());
+
+            }
+
 
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
             view.loadUrl(url);
+
             return super.shouldOverrideUrlLoading(view, url);
-
-
         }
     }
 
 
-    @Override
+    /* @Override
     public boolean onKeyDown(int keyCode, KeyEvent event)
     {
         if((keyCode==KeyEvent.KEYCODE_BACK)&&webView.canGoBack()){
 
             webView.goBack();
-            return true;
+
+
         }
 
         return super.onKeyDown(keyCode, event);
-    }
+    }*/
 
+   @Override
+    public void onBackPressed() {
+        if (webView.isFocused() && webView.canGoBack()) {
+            webView.goBack();
+        }
+        else {
+            super.onBackPressed();
+        }
+    }
 }
+
+
+
